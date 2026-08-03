@@ -40,6 +40,10 @@ defmodule TestApp.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:bcrypt_elixir, "~> 3.0"},
+      {:permit, "~> 0.4.1"},
+      {:permit_ecto, "~> 0.3.0"},
+      {:permit_phoenix, "~> 0.5.0"},
       {:phoenix, "~> 1.8.5"},
       {:phoenix_ecto, "~> 4.5"},
       {:ecto_sql, "~> 3.13"},

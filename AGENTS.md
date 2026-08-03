@@ -16,7 +16,7 @@ This is a web application written using the Phoenix web framework.
 - Out of the box, `core_components.ex` imports an `<.icon name="hero-x-mark" class="w-5 h-5"/>` component for hero icons. **Always** use the `<.icon>` component for icons, **never** use `Heroicons` modules or similar
 - **Always** use the imported `<.input>` component for form inputs from `core_components.ex` when available. `<.input>` is imported and using it will save steps and prevent errors
 - If you override the default input classes (`<.input class="myclass px-2 py-1 rounded-lg">)`) class with your own values, no default classes are inherited, so your
-custom classes must fully style the input
+  custom classes must fully style the input
 
 ### JS and CSS guidelines
 
@@ -43,10 +43,72 @@ custom classes must fully style the input
 - Ensure **clean typography, spacing, and layout balance** for a refined, premium look
 - Focus on **delightful details** like hover effects, loading states, and smooth page transitions
 
+<!-- phoenix-gen-auth-start -->
+
+## Authentication
+
+- **Always** handle authentication flow at the router level with proper redirects
+- **Always** be mindful of where to place routes. `phx.gen.auth` creates multiple router plugs and `live_session` scopes:
+  - A plug `:fetch_current_scope_for_user` that is included in the default browser pipeline
+  - A plug `:require_authenticated_user` that redirects to the log in page when the user is not authenticated
+  - A `live_session :current_user` scope - for routes that need the current user but don't require authentication, similar to `:fetch_current_scope_for_user`
+  - A `live_session :require_authenticated_user` scope - for routes that require authentication, similar to the plug with the same name
+  - In both cases, a `@current_scope` is assigned to the Plug connection and LiveView socket
+  - A plug `redirect_if_user_is_authenticated` that redirects to a default path in case the user is authenticated - useful for a registration page that should only be shown to unauthenticated users
+- **Always let the user know in which router scopes, `live_session`, and pipeline you are placing the route, AND SAY WHY**
+- `phx.gen.auth` assigns the `current_scope` assign - it **does not assign a `current_user` assign**
+- Always pass the assign `current_scope` to context modules as first argument. When performing queries, use `current_scope.user` to filter the query results
+- To derive/access `current_user` in templates, **always use the `@current_scope.user`**, never use **`@current_user`** in templates or LiveViews
+- **Never** duplicate `live_session` names. A `live_session :current_user` can only be defined **once** in the router, so all routes for the `live_session :current_user` must be grouped in a single block
+- Anytime you hit `current_scope` errors or the logged in session isn't displaying the right content, **always double check the router and ensure you are using the correct plug and `live_session` as described below**
+
+### Routes that require authentication
+
+LiveViews that require login should **always be placed inside the **existing** `live_session :require_authenticated_user` block**:
+
+    scope "/", AppWeb do
+      pipe_through [:browser, :require_authenticated_user]
+
+      live_session :require_authenticated_user,
+        on_mount: [{TestAppWeb.UserAuth, :require_authenticated}] do
+        # phx.gen.auth generated routes
+        live "/users/settings", UserLive.Settings, :edit
+        live "/users/settings/confirm-email/:token", UserLive.Settings, :confirm_email
+        # our own routes that require logged in user
+        live "/", MyLiveThatRequiresAuth, :index
+      end
+    end
+
+Controller routes must be placed in a scope that sets the `:require_authenticated_user` plug:
+
+    scope "/", AppWeb do
+      pipe_through [:browser, :require_authenticated_user]
+
+      get "/", MyControllerThatRequiresAuth, :index
+    end
+
+### Routes that work with or without authentication
+
+LiveViews that can work with or without authentication, **always use the **existing** `:current_user` scope**, ie:
+
+    scope "/", MyAppWeb do
+      pipe_through [:browser]
+
+      live_session :current_user,
+        on_mount: [{TestAppWeb.UserAuth, :mount_current_scope}] do
+        # our own routes that work with or without authentication
+        live "/", PublicLive
+      end
+    end
+
+Controllers automatically have the `current_scope` available if they use the `:browser` pipeline.
+
+<!-- phoenix-gen-auth-end -->
 
 <!-- usage-rules-start -->
 
 <!-- phoenix:elixir-start -->
+
 ## Elixir guidelines
 
 - Elixir lists **do not support index based access via the access syntax**
@@ -64,7 +126,7 @@ custom classes must fully style the input
       Enum.at(mylist, i)
 
 - Elixir variables are immutable, but can be rebound, so for block expressions like `if`, `case`, `cond`, etc
-  you *must* bind the result of the expression to a variable if you want to use it and you CANNOT rebind the result inside the expression, ie:
+  you _must_ bind the result of the expression to a variable if you want to use it and you CANNOT rebind the result inside the expression, ie:
 
       # INVALID: we are rebinding inside the `if` and the result never gets assigned
       if connected?(socket) do
@@ -97,13 +159,15 @@ custom classes must fully style the input
 - **Avoid** `Process.sleep/1` and `Process.alive?/1` in tests
   - Instead of sleeping to wait for a process to finish, **always** use `Process.monitor/1` and assert on the DOWN message:
 
-      ref = Process.monitor(pid)
-      assert_receive {:DOWN, ^ref, :process, ^pid, :normal}
+    ref = Process.monitor(pid)
+    assert_receive {:DOWN, ^ref, :process, ^pid, :normal}
 
-   - Instead of sleeping to synchronize before the next call, **always** use `_ = :sys.get_state/1` to ensure the process has handled prior messages
+  - Instead of sleeping to synchronize before the next call, **always** use `_ = :sys.get_state/1` to ensure the process has handled prior messages
+
 <!-- phoenix:elixir-end -->
 
 <!-- phoenix:phoenix-start -->
+
 ## Phoenix guidelines
 
 - Remember Phoenix router `scope` blocks include an optional alias which is prefixed for all routes within the scope. **Always** be mindful of this when creating routes within a scope to avoid duplicate module prefixes.
@@ -119,9 +183,11 @@ custom classes must fully style the input
   the UserLive route would point to the `AppWeb.Admin.UserLive` module
 
 - `Phoenix.View` no longer is needed or included with Phoenix, don't use it
+
 <!-- phoenix:phoenix-end -->
 
 <!-- phoenix:ecto-start -->
+
 ## Ecto Guidelines
 
 - **Always** preload Ecto associations in queries when they'll be accessed in templates, ie a message that needs to reference the `message.user.email`
@@ -131,9 +197,11 @@ custom classes must fully style the input
 - You **must** use `Ecto.Changeset.get_field(changeset, :field)` to access changeset fields
 - Fields which are set programmatically, such as `user_id`, must not be listed in `cast` calls or similar for security purposes. Instead they must be explicitly set when creating the struct
 - **Always** invoke `mix ecto.gen.migration migration_name_using_underscores` when generating migration files, so the correct timestamp and conventions are applied
+
 <!-- phoenix:ecto-end -->
 
 <!-- phoenix:html-start -->
+
 ## Phoenix HTML guidelines
 
 - Phoenix templates **always** use `~H` or .html.heex files (known as HEEx), **never** use `~E`
@@ -163,7 +231,7 @@ custom classes must fully style the input
           ...
       <% end %>
 
-- HEEx require special tag annotation if you want to insert literal curly's like `{` or `}`. If you want to show a textual code snippet on the page in a `<pre>` or `<code>` block you *must* annotate the parent tag with `phx-no-curly-interpolation`:
+- HEEx require special tag annotation if you want to insert literal curly's like `{` or `}`. If you want to show a textual code snippet on the page in a `<pre>` or `<code>` block you _must_ annotate the parent tag with `phx-no-curly-interpolation`:
 
       <code phx-no-curly-interpolation>
         let obj = {key: "val"}
@@ -210,12 +278,14 @@ custom classes must fully style the input
         {if @invalid_block_construct do}
         {end}
       </div>
+
 <!-- phoenix:html-end -->
 
 <!-- phoenix:liveview-start -->
+
 ## Phoenix LiveView guidelines
 
-- **Never** use the deprecated `live_redirect` and `live_patch` functions, instead **always** use the `<.link navigate={href}>` and  `<.link patch={href}>` in templates, and `push_navigate` and `push_patch` functions LiveViews
+- **Never** use the deprecated `live_redirect` and `live_patch` functions, instead **always** use the `<.link navigate={href}>` and `<.link patch={href}>` in templates, and `push_navigate` and `push_patch` functions LiveViews
 - **Avoid LiveComponent's** unless you have a strong, specific need for them
 - LiveViews should be named like `AppWeb.WeatherLive`, with a `Live` suffix. When you go to add LiveView routes to the router, the default `:browser` scope is **already aliased** with the `AppWeb` module, so you can just do `live "/weather", WeatherLive`
 
@@ -235,7 +305,7 @@ custom classes must fully style the input
         </div>
       </div>
 
-- LiveView streams are *not* enumerable, so you cannot use `Enum.filter/2` or `Enum.reject/2` on them. Instead, if you want to filter, prune, or refresh a list of items on the UI, you **must refetch the data and re-stream the entire stream collection, passing reset: true**:
+- LiveView streams are _not_ enumerable, so you cannot use `Enum.filter/2` or `Enum.reject/2` on them. Instead, if you want to filter, prune, or refresh a list of items on the UI, you **must refetch the data and re-stream the entire stream collection, passing reset: true**:
 
       def handle_event("filter", %{"filter" => filter}, socket) do
         # re-fetch the messages based on the filter
@@ -248,7 +318,7 @@ custom classes must fully style the input
          |> stream(:messages, messages, reset: true)}
       end
 
-- LiveView streams *do not support counting or empty states*. If you need to display a count, you must track it using a separate assign. For empty states, you can use Tailwind classes:
+- LiveView streams _do not support counting or empty states_. If you need to display a count, you must track it using a separate assign. For empty states, you can use Tailwind classes:
 
       <div id="tasks" phx-update="stream">
         <div class="hidden only:block">No tasks yet</div>
@@ -444,6 +514,7 @@ And **never** do this:
 
 - You are FORBIDDEN from accessing the changeset in the template as it will cause errors
 - **Never** use `<.form let={f} ...>` in the template, instead **always use `<.form for={@form} ...>`**, then drive all form references from the form assign as in `@form[:field]`. The UI should **always** be driven by a `to_form/2` assigned in the LiveView module that is derived from a changeset
+
 <!-- phoenix:liveview-end -->
 
 <!-- usage-rules-end -->

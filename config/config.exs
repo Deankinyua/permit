@@ -7,6 +7,19 @@
 # General application configuration
 import Config
 
+config :test_app, :scopes,
+  user: [
+    default: true,
+    module: TestApp.Accounts.Scope,
+    assign_key: :current_scope,
+    access_path: [:user, :id],
+    schema_key: :user_id,
+    schema_type: :binary_id,
+    schema_table: :users,
+    test_data_fixture: TestApp.AccountsFixtures,
+    test_setup_helper: :register_and_log_in_user
+  ]
+
 config :test_app,
   ecto_repos: [TestApp.Repo],
   generators: [timestamp_type: :utc_datetime]
