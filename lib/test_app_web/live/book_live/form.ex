@@ -5,6 +5,9 @@ defmodule TestAppWeb.BookLive.Form do
   alias TestApp.Books.Book
 
   @impl true
+  def resource_module, do: TestApp.Books.Book
+
+  @impl true
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope}>
@@ -13,7 +16,7 @@ defmodule TestAppWeb.BookLive.Form do
         <:subtitle>Use this form to manage book records in your database.</:subtitle>
       </.header>
 
-      <.form for={@form} id="book-form" phx-change="validate" phx-submit="save">
+      <.form for={@form} id="book-form" phx-change="validate" phx-submit={@submit_action}>
         <.input field={@form[:name]} type="text" label="Name" />
         <.input field={@form[:pages]} type="number" label="Pages" />
         <footer>
@@ -30,6 +33,7 @@ defmodule TestAppWeb.BookLive.Form do
     {:ok,
      socket
      |> assign(:return_to, return_to(params["return_to"]))
+     |> assign(:submit_action, %{new: "create", edit: "update"}[socket.assigns.live_action])
      |> apply_action(socket.assigns.live_action, params)}
   end
 
