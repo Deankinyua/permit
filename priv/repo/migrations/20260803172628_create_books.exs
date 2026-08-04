@@ -6,6 +6,7 @@ defmodule TestApp.Repo.Migrations.CreateBooks do
       add :id, :binary_id, primary_key: true
       add :name, :string
       add :pages, :integer
+      add :public, :boolean, default: false
       add :user_id, references(:users, type: :binary_id, on_delete: :delete_all)
 
       timestamps(type: :utc_datetime)

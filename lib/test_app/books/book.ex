@@ -7,6 +7,7 @@ defmodule TestApp.Books.Book do
   schema "books" do
     field :name, :string
     field :pages, :integer
+    field :public, :boolean, default: false
 
     belongs_to :user, TestApp.Accounts.User
 
