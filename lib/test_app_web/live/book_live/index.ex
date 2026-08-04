@@ -51,11 +51,13 @@ defmodule TestAppWeb.BookLive.Index do
   end
 
   @impl true
-  def handle_event("delete", %{"id" => id}, socket) do
-    book = Books.get_book!(socket.assigns.current_scope, id)
+  @permit_action :delete
+  def handle_event("delete", %{"id" => _id}, socket) do
+    book = socket.assigns.loaded_resource
+
     {:ok, _} = Books.delete_book(socket.assigns.current_scope, book)
 
-    {:noreply, stream_delete(socket, :books, book)}
+    {:noreply, stream_delete(socket, :loaded_resources, book)}
   end
 
   @impl true
