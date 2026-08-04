@@ -17,7 +17,7 @@ defmodule TestApp.Books.Book do
   @doc false
   def changeset(book, attrs, user_scope) do
     book
-    |> cast(attrs, [:name, :pages])
+    |> cast(attrs, [:name, :pages, :public])
     |> validate_required([:name, :pages])
     |> put_change(:user_id, user_scope.user.id)
   end
