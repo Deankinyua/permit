@@ -4,6 +4,9 @@ defmodule TestAppWeb.BookLive.Index do
   alias TestApp.Books
 
   @impl true
+  def resource_module, do: TestApp.Books.Book
+
+  @impl true
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope}>
@@ -18,7 +21,7 @@ defmodule TestAppWeb.BookLive.Index do
 
       <.table
         id="books"
-        rows={@streams.books}
+        rows={@streams.loaded_resources}
         row_click={fn {_id, book} -> JS.navigate(~p"/books/#{book}") end}
       >
         <:col :let={{_id, book}} label="Name">{book.name}</:col>
@@ -44,14 +47,7 @@ defmodule TestAppWeb.BookLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
-    if connected?(socket) do
-      Books.subscribe_books(socket.assigns.current_scope)
-    end
-
-    {:ok,
-     socket
-     |> assign(:page_title, "Listing Books")
-     |> stream(:books, list_books(socket.assigns.current_scope))}
+    {:ok, assign(socket, :page_title, "Listing Books")}
   end
 
   @impl true
