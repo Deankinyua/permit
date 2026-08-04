@@ -64,7 +64,18 @@ defmodule TestAppWeb.BookLive.Form do
     {:noreply, assign(socket, form: to_form(changeset, action: :validate))}
   end
 
-  def handle_event("save", %{"book" => book_params}, socket) do
+  # * Previous save event handler
+  # def handle_event("save", %{"book" => book_params}, socket) do
+  #   save_book(socket, socket.assigns.live_action, book_params)
+  # end
+
+  @permit_action :create
+  def handle_event("create", %{"book" => book_params}, socket) do
+    save_book(socket, socket.assigns.live_action, book_params)
+  end
+
+  @permit_action :update
+  def handle_event("update", %{"book" => book_params}, socket) do
     save_book(socket, socket.assigns.live_action, book_params)
   end
 
