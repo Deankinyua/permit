@@ -1,6 +1,8 @@
 defmodule TestAppWeb.BookLive.Index do
   use TestAppWeb, :live_view
 
+  import TestApp.Authorization
+
   alias TestApp.Books
 
   @impl true
@@ -27,18 +29,24 @@ defmodule TestAppWeb.BookLive.Index do
         <:col :let={{_id, book}} label="Name">{book.name}</:col>
         <:col :let={{_id, book}} label="Pages">{book.pages}</:col>
         <:action :let={{_id, book}}>
-          <div class="sr-only">
-            <.link navigate={~p"/books/#{book}"}>Show</.link>
-          </div>
-          <.link navigate={~p"/books/#{book}/edit"}>Edit</.link>
+          <%= if can(@current_scope.user) |> show?(book) do %>
+            <div class="sr-only">
+              <.link navigate={~p"/books/#{book}"}>Show</.link>
+            </div>
+          <% end %>
+          <%= if can(@current_scope.user) |> edit?(book) do %>
+            <.link navigate={~p"/books/#{book}/edit"}>Edit</.link>
+          <% end %>
         </:action>
         <:action :let={{id, book}}>
-          <.link
-            phx-click={JS.push("delete", value: %{id: book.id}) |> hide("##{id}")}
-            data-confirm="Are you sure?"
-          >
-            Delete
-          </.link>
+          <%= if can(@current_scope.user) |> edit?(book) do %>
+            <.link
+              phx-click={JS.push("delete", value: %{id: book.id}) |> hide("##{id}")}
+              data-confirm="Are you sure?"
+            >
+              Delete
+            </.link>
+          <% end %>
         </:action>
       </.table>
     </Layouts.app>
