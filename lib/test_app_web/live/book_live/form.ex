@@ -19,6 +19,7 @@ defmodule TestAppWeb.BookLive.Form do
       <.form for={@form} id="book-form" phx-change="validate" phx-submit={@submit_action}>
         <.input field={@form[:name]} type="text" label="Name" />
         <.input field={@form[:pages]} type="number" label="Pages" />
+        <.input field={@form[:public]} type="checkbox" label="Public" />
         <footer>
           <.button phx-disable-with="Saving..." variant="primary">Save Book</.button>
           <.button navigate={return_path(@current_scope, @return_to, @book)}>Cancel</.button>
