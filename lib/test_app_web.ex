@@ -40,6 +40,8 @@ defmodule TestAppWeb do
     quote do
       use Phoenix.Controller, formats: [:html, :json]
 
+      # use Permit.Phoenix.Controller, authorization_module: TestApp.Authorization
+
       use Gettext, backend: TestAppWeb.Gettext
 
       import Plug.Conn
@@ -51,6 +53,8 @@ defmodule TestAppWeb do
   def live_view do
     quote do
       use Phoenix.LiveView
+
+      use Permit.Phoenix.LiveView, authorization_module: TestApp.Authorization, use_stream?: true
 
       unquote(html_helpers())
     end
